@@ -99,3 +99,14 @@ app.post('/update-cobj', async (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────────────────────────
+// Section 5 of 5 — Start the Server
+// ─────────────────────────────────────────────────────────────
+const PORT = process.env.PORT || 3000;
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT} — open this in your browser`);
+  });
+}
+
+module.exports = app;
