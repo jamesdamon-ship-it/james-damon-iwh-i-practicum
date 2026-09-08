@@ -40,3 +40,62 @@ const headers = {
   'Content-Type': 'application/json'
 };
 
+// ─────────────────────────────────────────────────────────────
+// Section 4 of 5 — The Three Routes
+// ─────────────────────────────────────────────────────────────
+
+// ── ROUTE 1: Homepage ── GET /
+// Fetches all records from the custom object and renders the table
+app.get('/', async (req, res) => {
+  const url = `${HUBSPOT_BASE}/crm/v3/objects/${OBJECT_TYPE}`;
+  try {
+    const resp = await axios.get(url, {
+      params: {
+        properties: `${PROPERTY_1},${PROPERTY_2},${PROPERTY_3}`,
+        limit: 100
+      },
+      headers
+    });
+    const records = resp.data.results;
+    res.render('homepage', {
+      title: 'Custom Object List | Integrating With HubSpot I Practicum',
+      records,
+      col1: COL_1_LABEL, col2: COL_2_LABEL, col3: COL_3_LABEL,
+      prop1: PROPERTY_1, prop2: PROPERTY_2, prop3: PROPERTY_3
+    });
+  } catch (error) {
+    console.error('Error fetching records:', error.response?.data || error.message);
+    res.status(500).send('Error fetching records — check your terminal.');
+  }
+});
+
+// ── ROUTE 2: Show Form ── GET /update-cobj
+// Renders the HTML form for creating a new record
+app.get('/update-cobj', (req, res) => {
+  res.render('updates', {
+    title: 'Update Custom Object Form | Integrating With HubSpot I Practicum',
+    col1: COL_1_LABEL, col2: COL_2_LABEL, col3: COL_3_LABEL,
+    prop1: PROPERTY_1, prop2: PROPERTY_2, prop3: PROPERTY_3
+  });
+});
+
+// ── ROUTE 3: Submit Form ── POST /update-cobj
+// Receives form data and creates a new record in HubSpot
+app.post('/update-cobj', async (req, res) => {
+  const url = `${HUBSPOT_BASE}/crm/v3/objects/${OBJECT_TYPE}`;
+  const newRecord = {
+    properties: {
+      [PROPERTY_1]: req.body[PROPERTY_1],
+      [PROPERTY_2]: req.body[PROPERTY_2],
+      [PROPERTY_3]: req.body[PROPERTY_3]
+    }
+  };
+  try {
+    await axios.post(url, newRecord, { headers });
+    res.redirect('/');
+  } catch (error) {
+    console.error('Error creating record:', error.response?.data || error.message);
+    res.status(500).send('Error creating record — check your terminal.');
+  }
+});
+
