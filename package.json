@@ -1,16 +1,18 @@
 {
-    "name": "integrating-with-hubspot-i-foundations-practicum",
+    "name": "james-damon-iwh-i-practicum",
     "version": "1.0.0",
-    "description": "",
+    "description": "Integrating With HubSpot I: Foundations practicum — Express + Pug app reading and writing a HubSpot custom object.",
     "main": "index.js",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "start": "node index.js",
+        "test": "node test/smoke.test.js"
     },
-    "author": "HubSpot Academy learner",
+    "author": "James Damon",
     "license": "ISC",
     "dependencies": {
         "axios": "^1.3.5",
         "express": "^4.18.2",
-        "pug": "^3.0.2"
+        "pug": "^3.0.2",
+        "dotenv": "^16.4.5"
     }
 }

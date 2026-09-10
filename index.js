@@ -1,71 +1,112 @@
+// ─────────────────────────────────────────────────────────────
+// Section 1 of 5 — Dependencies & App Setup
+// ─────────────────────────────────────────────────────────────
+require('dotenv').config();
 const express = require('express');
-const axios = require('axios');
-const app = express();
+const axios   = require('axios');
+const app     = express();
 
-app.set('view engine', 'pug');
-app.use(express.static(__dirname + '/public'));
+// ─────────────────────────────────────────────────────────────
+// Section 2 of 5 — Middleware & View Engine
+// ─────────────────────────────────────────────────────────────
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(express.static(__dirname + '/public'));
+app.set('view engine', 'pug');
+app.set('views', __dirname + '/views');
 
-// * Please DO NOT INCLUDE the private app access token in your repo. Don't do this practicum in your normal account.
-const PRIVATE_APP_ACCESS = '';
+// ─────────────────────────────────────────────────────────────
+// Section 3 of 5 — Configuration Variables
+// ─────────────────────────────────────────────────────────────
+// * DO NOT commit your private app access token. It lives in .env only.
+const HUBSPOT_TOKEN = process.env.PRIVATE_APP_ACCESS_TOKEN;
 
-// TODO: ROUTE 1 - Create a new app.get route for the homepage to call your custom object data. Pass this data along to the front-end and create a new pug template in the views folder.
+// Custom object API name — Settings > Data Management > Objects > data model
+const OBJECT_TYPE = process.env.HUBSPOT_OBJECT_TYPE || 'p_plants';
 
-// * Code for Route 1 goes here
+// Internal names of the three custom properties
+const PROPERTY_1 = 'name';           // Required by the practicum
+const PROPERTY_2 = 'plant_type';
+const PROPERTY_3 = 'bloom_season';
 
-// TODO: ROUTE 2 - Create a new app.get route for the form to create or update new custom object data. Send this data along in the next route.
+// Friendly column labels shown in the homepage table
+const COL_1_LABEL = 'Name';
+const COL_2_LABEL = 'Type';
+const COL_3_LABEL = 'Bloom Season';
 
-// * Code for Route 2 goes here
+const HUBSPOT_BASE = process.env.HUBSPOT_BASE_URL || 'https://api.hubapi.com';
+const headers = {
+  Authorization: `Bearer ${HUBSPOT_TOKEN}`,
+  'Content-Type': 'application/json'
+};
 
-// TODO: ROUTE 3 - Create a new app.post route for the custom objects form to create or update your custom object data. Once executed, redirect the user to the homepage.
+// ─────────────────────────────────────────────────────────────
+// Section 4 of 5 — The Three Routes
+// ─────────────────────────────────────────────────────────────
 
-// * Code for Route 3 goes here
-
-/** 
-* * This is sample code to give you a reference for how you should structure your calls. 
-
-* * App.get sample
-app.get('/contacts', async (req, res) => {
-    const contacts = 'https://api.hubspot.com/crm/v3/objects/contacts';
-    const headers = {
-        Authorization: `Bearer ${PRIVATE_APP_ACCESS}`,
-        'Content-Type': 'application/json'
-    }
-    try {
-        const resp = await axios.get(contacts, { headers });
-        const data = resp.data.results;
-        res.render('contacts', { title: 'Contacts | HubSpot APIs', data });      
-    } catch (error) {
-        console.error(error);
-    }
+// ── ROUTE 1: Homepage ── GET /
+// Fetches all records from the custom object and renders the table
+app.get('/', async (req, res) => {
+  const url = `${HUBSPOT_BASE}/crm/v3/objects/${OBJECT_TYPE}`;
+  try {
+    const resp = await axios.get(url, {
+      params: {
+        properties: `${PROPERTY_1},${PROPERTY_2},${PROPERTY_3}`,
+        limit: 100
+      },
+      headers
+    });
+    const records = resp.data.results;
+    res.render('homepage', {
+      title: 'Custom Object List | Integrating With HubSpot I Practicum',
+      records,
+      col1: COL_1_LABEL, col2: COL_2_LABEL, col3: COL_3_LABEL,
+      prop1: PROPERTY_1, prop2: PROPERTY_2, prop3: PROPERTY_3
+    });
+  } catch (error) {
+    console.error('Error fetching records:', error.response?.data || error.message);
+    res.status(500).send('Error fetching records — check your terminal.');
+  }
 });
 
-* * App.post sample
-app.post('/update', async (req, res) => {
-    const update = {
-        properties: {
-            "favorite_book": req.body.newVal
-        }
-    }
-
-    const email = req.query.email;
-    const updateContact = `https://api.hubapi.com/crm/v3/objects/contacts/${email}?idProperty=email`;
-    const headers = {
-        Authorization: `Bearer ${PRIVATE_APP_ACCESS}`,
-        'Content-Type': 'application/json'
-    };
-
-    try { 
-        await axios.patch(updateContact, update, { headers } );
-        res.redirect('back');
-    } catch(err) {
-        console.error(err);
-    }
-
+// ── ROUTE 2: Show Form ── GET /update-cobj
+// Renders the HTML form for creating a new record
+app.get('/update-cobj', (req, res) => {
+  res.render('updates', {
+    title: 'Update Custom Object Form | Integrating With HubSpot I Practicum',
+    col1: COL_1_LABEL, col2: COL_2_LABEL, col3: COL_3_LABEL,
+    prop1: PROPERTY_1, prop2: PROPERTY_2, prop3: PROPERTY_3
+  });
 });
-*/
 
+// ── ROUTE 3: Submit Form ── POST /update-cobj
+// Receives form data and creates a new record in HubSpot
+app.post('/update-cobj', async (req, res) => {
+  const url = `${HUBSPOT_BASE}/crm/v3/objects/${OBJECT_TYPE}`;
+  const newRecord = {
+    properties: {
+      [PROPERTY_1]: req.body[PROPERTY_1],
+      [PROPERTY_2]: req.body[PROPERTY_2],
+      [PROPERTY_3]: req.body[PROPERTY_3]
+    }
+  };
+  try {
+    await axios.post(url, newRecord, { headers });
+    res.redirect('/');
+  } catch (error) {
+    console.error('Error creating record:', error.response?.data || error.message);
+    res.status(500).send('Error creating record — check your terminal.');
+  }
+});
 
-// * Localhost
-app.listen(3000, () => console.log('Listening on http://localhost:3000'));
+// ─────────────────────────────────────────────────────────────
+// Section 5 of 5 — Start the Server
+// ─────────────────────────────────────────────────────────────
+const PORT = process.env.PORT || 3000;
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT} — open this in your browser`);
+  });
+}
+
+module.exports = app;
